@@ -246,6 +246,10 @@ cc_library {
     ] + select(soong_config_variable("camera", "package_name"), {
         any @ flag_val: ["-DCAMERA_PACKAGE_NAME=\"" + flag_val + "\""],
         default: [],
+    }) + select(soong_config_variable("camera", "disable_torch_control"), {
+        true: ["-DDISABLE_TORCH_CONTROL"],
+        false: [],
+        default: [],
     }),
 }
 
