@@ -142,7 +142,10 @@ cc_library_shared {
         "-Wall",
         "-Werror",
         "-Wno-error=deprecated-declarations",
-    ],
+    ] + select(soong_config_variable("stagefright", "target_use_legacy_mediacodecbuffer_setrange"), {
+        true: ["-DUSE_LEGACY_MEDIACODECBUFFER_SETRANGE"],
+        default: [],
+    }),
 
     sanitize: {
         misc_undefined: [
