@@ -2334,6 +2334,68 @@ void ThreadBase::boostThreadPriority(const int priority) {
     }
 }
 
+
+void PlaybackThread::listAppVolumes(std::set<media::AppVolume> &container)
+{
+    audio_utils::lock_guard _l(mutex());
+    for (const auto& trackBase : mTracks) {
+        if (trackBase == nullptr) continue;
+        
+        sp<IAfTrack> track = trackBase->asIAfTrack();
+        if (track == nullptr) continue;
+
+        if (!track->getPackageName().empty()) {
+            media::AppVolume av;
+            av.packageName = track->getPackageName();
+            av.muted = track->isAppMuted();
+            av.volume = track->getAppVolume();
+            
+            bool isActive = false;
+            for (const auto& activeTrack : mActiveTracks) {
+                if (activeTrack == trackBase) {
+                    isActive = true;
+                    break;
+                }
+            }
+            av.active = isActive;
+            
+            container.insert(av);
+        }
+    }
+}
+
+status_t PlaybackThread::setAppVolume(const String8& packageName, const float value)
+{
+    audio_utils::lock_guard _l(mutex());
+    for (const auto& trackBase : mTracks) {
+        if (trackBase == nullptr) continue;
+
+        sp<IAfTrack> track = trackBase->asIAfTrack();
+        if (track == nullptr) continue;
+
+        if (packageName == track->getPackageName()) {
+            track->setAppVolume(value);
+        }
+    }
+    return NO_ERROR;
+}
+
+status_t PlaybackThread::setAppMute(const String8& packageName, const bool value)
+{
+    audio_utils::lock_guard _l(mutex());
+    for (const auto& trackBase : mTracks) {
+        if (trackBase == nullptr) continue;
+
+        sp<IAfTrack> track = trackBase->asIAfTrack();
+        if (track == nullptr) continue;
+
+        if (packageName == track->getPackageName()) {
+            track->setAppMute(value);
+        }
+    }
+    return NO_ERROR;
+}
+
 // ----------------------------------------------------------------------------
 //      Playback
 // ----------------------------------------------------------------------------
@@ -5869,16 +5931,16 @@ PlaybackThread::mixer_state MixerThread::prepareTracks_l(
 
                 if (com_android_media_audio_ring_my_car()) {
                     if (!track->canBypassMute()
-                        && (track->isPlaybackRestricted() || track->getPortMute())) {
+                        && (track->isPlaybackRestricted() || track->getPortMute() || track->isAppMuted())) {
                         volume = 0.f;
                     } else {
-                        volume = masterVolume * track->getPortVolume();
+                        volume = masterVolume * track->getPortVolume() * track->getAppVolume();
                     }
                 } else {
-                    if (track->isPlaybackRestricted() || track->getPortMute()) {
+                    if (track->isPlaybackRestricted() || track->getPortMute() || track->isAppMuted()) {
                         volume = 0.f;
                     } else {
-                        volume = masterVolume * track->getPortVolume();
+                        volume = masterVolume * track->getPortVolume() * track->getAppVolume();
                     }
                 }
 
@@ -6082,16 +6144,16 @@ PlaybackThread::mixer_state MixerThread::prepareTracks_l(
 
             if (com_android_media_audio_ring_my_car()) {
                 if (!track->canBypassMute()
-                    && (track->isPlaybackRestricted() || track->getPortMute())) {
+                    && (track->isPlaybackRestricted() || track->getPortMute() || track->isAppMuted())) {
                     v = 0;
                 } else {
-                    v = masterVolume * track->getPortVolume();
+                    v = masterVolume * track->getPortVolume() * track->getAppVolume();
                 }
             } else {
-                if (track->isPlaybackRestricted() || track->getPortMute()) {
+                if (track->isPlaybackRestricted() || track->getPortMute() || track->isAppMuted()) {
                     v = 0;
                 } else {
-                    v = masterVolume * track->getPortVolume();
+                    v = masterVolume * track->getPortVolume() * track->getAppVolume();
                 }
             }
 
@@ -6110,13 +6172,14 @@ PlaybackThread::mixer_state MixerThread::prepareTracks_l(
                 vlf = float_from_gain(gain_minifloat_unpack_left(vlr));
                 vrf = float_from_gain(gain_minifloat_unpack_right(vlr));
                 // track volumes come from shared memory, so can't be trusted and must be clamped
-                if (vlf > GAIN_FLOAT_UNITY) {
+                // track volumes come from shared memory, allow boost up to 200% (2.0f)
+                if (vlf > 2.0f) {
                     ALOGV("Track left volume out of range: %.3g", vlf);
-                    vlf = GAIN_FLOAT_UNITY;
+                    vlf = 2.0f;
                 }
-                if (vrf > GAIN_FLOAT_UNITY) {
+                if (vrf > 2.0f) {
                     ALOGV("Track right volume out of range: %.3g", vrf);
-                    vrf = GAIN_FLOAT_UNITY;
+                    vrf = 2.0f;
                 }
                 if (amn) {
                     bool portMute;
@@ -6877,18 +6940,18 @@ void DirectOutputThread::processVolume_l(const sp<IAfTrack>& track, bool lastTra
 
     if (mMasterMute || (com_android_media_audio_ring_my_car() ?
             (!track->canBypassMute()
-              && (track->isPlaybackRestricted() || track->getPortMute()))
+              && (track->isPlaybackRestricted() || track->getPortMute() || track->isAppMuted()))
             : track->isPlaybackRestricted())) {
         left = right = 0;
     } else {
         float typeVolume = track->getPortVolume();
         const float v = mMasterVolume * typeVolume * shaperVolume;
 
-        if (left > GAIN_FLOAT_UNITY) {
-            left = GAIN_FLOAT_UNITY;
+        if (left > 2.0f) {
+            left = 2.0f;
         }
-        if (right > GAIN_FLOAT_UNITY) {
-            right = GAIN_FLOAT_UNITY;
+        if (right > 2.0f) {
+            right = 2.0f;
         }
         left *= v;
         right *= v;
@@ -7911,6 +7974,7 @@ ssize_t DuplicatingThread::threadLoop_write()
 
     bool first = true;
     for (const auto& t : tlOutputTracks) {
+        if (t == nullptr) continue;
         const ssize_t actualWritten = t->write(mSinkBuffer, writeFrames);
 
         // Consider the first OutputTrack for timestamp and frame counting.

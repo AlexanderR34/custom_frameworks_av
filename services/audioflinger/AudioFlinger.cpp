@@ -5286,3 +5286,68 @@ status_t AudioFlinger::onTransactWrapper(TransactionCode code,
 }
 
 } // namespace android
+
+status_t AudioFlinger::setAppVolume(const String8& packageName, const float value)
+{
+    audio_utils::lock_guard _l(mutex());
+    auto search = mAppVolumeConfigs.find(packageName);
+    if (search != mAppVolumeConfigs.end()) {
+        search->second.volume = value;
+    } else {
+        media::AppVolume av;
+        av.packageName = packageName;
+        av.volume = value;
+        mAppVolumeConfigs[packageName] = av;
+    }
+
+    for (size_t i = 0; i < mPlaybackThreads.size(); i++) {
+        mPlaybackThreads.valueAt(i)->setAppVolume(packageName, value);
+    }
+    return NO_ERROR;
+}
+
+status_t AudioFlinger::setAppMute(const String8& packageName, const bool value)
+{
+    audio_utils::lock_guard _l(mutex());
+    auto search = mAppVolumeConfigs.find(packageName);
+    if (search != mAppVolumeConfigs.end()) {
+        search->second.muted = value;
+    } else {
+        media::AppVolume av;
+        av.packageName = packageName;
+        av.muted = value;
+        mAppVolumeConfigs[packageName] = av;
+    }
+
+    for (size_t i = 0; i < mPlaybackThreads.size(); i++) {
+        mPlaybackThreads.valueAt(i)->setAppMute(packageName, value);
+    }
+    return NO_ERROR;
+}
+
+status_t AudioFlinger::listAppVolumes(std::vector<media::AppVolume> *vols)
+{
+    audio_utils::lock_guard _l(mutex());
+    std::set<media::AppVolume> trackAppVolumes;
+    for (size_t i = 0; i < mPlaybackThreads.size(); i++) {
+        mPlaybackThreads.valueAt(i)->listAppVolumes(trackAppVolumes);
+    }
+
+    vols->clear();
+    for (const auto& av : trackAppVolumes) {
+        vols->push_back(av);
+    }
+    for (const auto& config : mAppVolumeConfigs) {
+        bool found = false;
+        for (const auto& av : *vols) {
+            if (av.packageName == config.first) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            vols->push_back(config.second);
+        }
+    }
+    return NO_ERROR;
+}

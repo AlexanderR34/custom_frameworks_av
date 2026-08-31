@@ -25,6 +25,7 @@
 #include <utils/Errors.h>
 #include <binder/IInterface.h>
 #include <media/AidlConversion.h>
+#include <media/AppVolume.h>
 #include <media/AudioClient.h>
 #include <media/AudioCommonTypes.h>
 #include <media/DeviceDescriptorBase.h>
@@ -401,6 +402,10 @@ public:
 
     virtual status_t resetReferencesForTest() = 0;
 
+    virtual status_t setAppVolume(const String8& packageName, const float value) = 0;
+    virtual status_t setAppMute(const String8& packageName, const bool value) = 0;
+    virtual status_t listAppVolumes(std::vector<media::AppVolume> *vols) = 0;
+
     virtual status_t getFlushFromFrameSupport(
             int module,
             const media::audio::common::AudioPortConfig& config,
@@ -525,6 +530,10 @@ public:
     status_t setTracksInternalMute(
             const std::vector<media::TrackInternalMuteInfo>& tracksInternalMute) override;
     status_t resetReferencesForTest() override;
+
+    status_t setAppVolume(const String8& packageName, const float value) override;
+    status_t setAppMute(const String8& packageName, const bool value) override;
+    status_t listAppVolumes(std::vector<media::AppVolume> *vols) override;
     status_t getFlushFromFrameSupport(
             int module,
             const media::audio::common::AudioPortConfig& config,
@@ -631,6 +640,9 @@ public:
             SET_TRACKS_INTERNAL_MUTE = media::BnAudioFlingerService::TRANSACTION_setTracksInternalMute,
             RESET_REFERENCES_FOR_TEST =
                     media::BnAudioFlingerService::TRANSACTION_resetReferencesForTest,
+            SET_APP_VOLUME = media::BnAudioFlingerService::TRANSACTION_setAppVolume,
+            SET_APP_MUTE = media::BnAudioFlingerService::TRANSACTION_setAppMute,
+            LIST_APP_VOLUMES = media::BnAudioFlingerService::TRANSACTION_listAppVolumes,
             GET_FLUSH_FROM_FRAME_SUPPORT =
                     media::BnAudioFlingerService::TRANSACTION_getFlushFromFrameSupport,
         };
@@ -771,6 +783,10 @@ public:
     Status setTracksInternalMute(
             const std::vector<media::TrackInternalMuteInfo>& tracksInternalMute) override;
     Status resetReferencesForTest() override;
+
+    Status setAppVolume(const std::string& packageName, const float value) override;
+    Status setAppMute(const std::string& packageName, const bool value) override;
+    Status listAppVolumes(std::vector<media::AppVolumeData> *vols) override;
     Status getFlushFromFrameSupport(
             int module,
             const media::audio::common::AudioPortConfig& config,

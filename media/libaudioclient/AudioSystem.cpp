@@ -3267,3 +3267,21 @@ legacy2aidl_record_client_info_t_RecordClientInfo(const record_client_info_t& le
 }
 
 } // namespace android
+
+status_t AudioSystem::setAppVolume(const String8& packageName, const float value) {
+    const sp<IAudioFlinger>& af = AudioSystem::get_audio_flinger();
+    if (af == 0) return PERMISSION_DENIED;
+    return af->setAppVolume(packageName, value);
+}
+
+status_t AudioSystem::setAppMute(const String8& packageName, const bool value) {
+    const sp<IAudioFlinger>& af = AudioSystem::get_audio_flinger();
+    if (af == 0) return PERMISSION_DENIED;
+    return af->setAppMute(packageName, value);
+}
+
+status_t AudioSystem::listAppVolumes(std::vector<media::AppVolume> *vols) {
+    const sp<IAudioFlinger>& af = AudioSystem::get_audio_flinger();
+    if (af == 0) return PERMISSION_DENIED;
+    return af->listAppVolumes(vols);
+}

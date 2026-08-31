@@ -906,6 +906,26 @@ status_t AudioFlingerClientAdapter::resetReferencesForTest() {
     return OK;
 }
 
+status_t AudioFlingerClientAdapter::setAppVolume(const String8& packageName, const float value) {
+    return statusTFromBinderStatus(mDelegate->setAppVolume(std::string(packageName.c_str()), value));
+}
+
+status_t AudioFlingerClientAdapter::setAppMute(const String8& packageName, const bool value) {
+    return statusTFromBinderStatus(mDelegate->setAppMute(std::string(packageName.c_str()), value));
+}
+
+status_t AudioFlingerClientAdapter::listAppVolumes(std::vector<media::AppVolume> *vols) {
+    std::vector<media::AppVolumeData> aidlData;
+    status_t status = statusTFromBinderStatus(mDelegate->listAppVolumes(&aidlData));
+    if (status != NO_ERROR) return status;
+    vols->clear();
+    for (const auto& data : aidlData) {
+        vols->push_back(media::AppVolume(String8(data.packageName.c_str()), data.volume, data.muted, data.active));
+    }
+    return NO_ERROR;
+}
+
+
 status_t AudioFlingerClientAdapter::getFlushFromFrameSupport(
         int module, const media::audio::common::AudioPortConfig& config,
         FlushFromFrameSupport* support) {
@@ -1467,6 +1487,31 @@ Status AudioFlingerServerAdapter::resetReferencesForTest() {
     RETURN_BINDER_IF_ERROR(mDelegate->resetReferencesForTest());
     return Status::ok();
 }
+
+Status AudioFlingerServerAdapter::setAppVolume(const std::string& packageName, const float value) {
+    return Status::fromStatusT(mDelegate->setAppVolume(String8(packageName.c_str()), value));
+}
+
+Status AudioFlingerServerAdapter::setAppMute(const std::string& packageName, const bool value) {
+    return Status::fromStatusT(mDelegate->setAppMute(String8(packageName.c_str()), value));
+}
+
+Status AudioFlingerServerAdapter::listAppVolumes(std::vector<media::AppVolumeData> *vols) {
+    std::vector<media::AppVolume> legacyData;
+    status_t status = mDelegate->listAppVolumes(&legacyData);
+    if (status != NO_ERROR) return Status::fromStatusT(status);
+    vols->clear();
+    for (const auto& data : legacyData) {
+        media::AppVolumeData item;
+        item.packageName = data.packageName.c_str();
+        item.volume = data.volume;
+        item.muted = data.muted;
+        item.active = data.active;
+        vols->push_back(item);
+    }
+    return Status::ok();
+}
+
 
 Status AudioFlingerServerAdapter::getFlushFromFrameSupport(
         int module, const media::audio::common::AudioPortConfig& config,

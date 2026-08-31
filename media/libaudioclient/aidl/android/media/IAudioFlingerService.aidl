@@ -21,6 +21,7 @@ import android.media.AudioPolicyConfig;
 import android.media.AudioPortFw;
 import android.media.AudioPortConfigFw;
 import android.media.AudioUniqueIdUse;
+import android.media.AppVolumeData;
 import android.media.AudioVibratorInfo;
 import android.media.CreateEffectRequest;
 import android.media.CreateEffectResponse;
@@ -325,4 +326,8 @@ interface IAudioFlingerService {
     // IAudioFlinger.h AudioFlingerServerAdapter::Delegate::TransactionCode
     // AudioFlinger.cpp AudioFlinger::onTransactWrapper()
     // AudioFlinger.cpp IAUDIOFLINGER_BINDER_METHOD_MACRO_LIST
+}
+    void setAppVolume(@utf8InCpp String packageName, float value);
+    void setAppMute(@utf8InCpp String packageName, boolean value);
+    AppVolumeData[] listAppVolumes();
 }
