@@ -37,9 +37,11 @@
 #include <timing/SyncEvent.h>
 #include <utils/RefBase.h>
 #include <vibrator/ExternalVibration.h>
+#include <media/AppVolume.h>
 
 #include <chrono>
 #include <optional>
+#include <set>
 
 namespace com::android::media::permission {
     class IPermissionProvider;
@@ -496,6 +498,9 @@ public:
 
     // return estimated latency in milliseconds, as reported by HAL
     virtual uint32_t latency() const = 0;  // should be in IAfThreadBase?
+    virtual void listAppVolumes(std::set<media::AppVolume>& container) = 0;
+    virtual status_t setAppVolume(const String8& packageName, const float value) = 0;
+    virtual status_t setAppMute(const String8& packageName, const bool value) = 0;
 
     virtual uint32_t& fastTrackAvailMask_l() REQUIRES(mutex()) = 0;
 

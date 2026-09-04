@@ -1177,6 +1177,14 @@ status_t AudioFlinger::createTrack(const media::CreateTrackRequest& _input,
         output.portId = portId;
 
         if (lStatus == NO_ERROR) {
+            if (track != nullptr) {
+                String8 pkgName(track->getPackageName().c_str());
+                auto search = mAppVolumeConfigs.find(pkgName);
+                if (search != mAppVolumeConfigs.end()) {
+                    track->setAppVolume(search->second.volume);
+                    track->setAppMute(search->second.muted);
+                }
+            }
             // no risk of deadlock because AudioFlinger::mutex() is held
             audio_utils::lock_guard _dl(thread->mutex());
             // Connect secondary outputs. Failure on a secondary output must not imped the primary
@@ -5285,8 +5293,6 @@ status_t AudioFlinger::onTransactWrapper(TransactionCode code,
     return delegate();
 }
 
-} // namespace android
-
 status_t AudioFlinger::setAppVolume(const String8& packageName, const float value)
 {
     audio_utils::lock_guard _l(mutex());
@@ -5300,8 +5306,8 @@ status_t AudioFlinger::setAppVolume(const String8& packageName, const float valu
         mAppVolumeConfigs[packageName] = av;
     }
 
-    for (size_t i = 0; i < mPlaybackThreads.size(); i++) {
-        mPlaybackThreads.valueAt(i)->setAppVolume(packageName, value);
+    for (const auto& [_, thread] : mPlaybackThreads) {
+        thread->setAppVolume(packageName, value);
     }
     return NO_ERROR;
 }
@@ -5319,8 +5325,8 @@ status_t AudioFlinger::setAppMute(const String8& packageName, const bool value)
         mAppVolumeConfigs[packageName] = av;
     }
 
-    for (size_t i = 0; i < mPlaybackThreads.size(); i++) {
-        mPlaybackThreads.valueAt(i)->setAppMute(packageName, value);
+    for (const auto& [_, thread] : mPlaybackThreads) {
+        thread->setAppMute(packageName, value);
     }
     return NO_ERROR;
 }
@@ -5329,8 +5335,8 @@ status_t AudioFlinger::listAppVolumes(std::vector<media::AppVolume> *vols)
 {
     audio_utils::lock_guard _l(mutex());
     std::set<media::AppVolume> trackAppVolumes;
-    for (size_t i = 0; i < mPlaybackThreads.size(); i++) {
-        mPlaybackThreads.valueAt(i)->listAppVolumes(trackAppVolumes);
+    for (const auto& [_, thread] : mPlaybackThreads) {
+        thread->listAppVolumes(trackAppVolumes);
     }
 
     vols->clear();
@@ -5351,3 +5357,5 @@ status_t AudioFlinger::listAppVolumes(std::vector<media::AppVolume> *vols)
     }
     return NO_ERROR;
 }
+
+} // namespace android

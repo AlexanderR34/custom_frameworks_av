@@ -1251,6 +1251,10 @@ public:
     float* sinkBuffer() const final {
                     return reinterpret_cast<float *>(mSinkBuffer); };
 
+    void listAppVolumes(std::set<media::AppVolume>& container) final;
+    status_t setAppVolume(const String8& packageName, const float value) final;
+    status_t setAppMute(const String8& packageName, const bool value) final;
+
     void detachAuxEffect_l(int effectId) final REQUIRES(mutex());
 
     status_t attachAuxEffect(const sp<IAfTrack>& track, int EffectId) final

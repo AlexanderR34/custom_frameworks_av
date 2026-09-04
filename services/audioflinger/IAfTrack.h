@@ -583,6 +583,12 @@ public:
 
     virtual bool canBypassMute() const = 0;
 
+    virtual const std::string& getPackageName() const = 0;
+    virtual bool isAppMuted() const = 0;
+    virtual float getAppVolume() const = 0;
+    virtual void setAppVolume(float volume) = 0;
+    virtual void setAppMute(bool muted) = 0;
+
     // Used by thread only
 
     virtual bool isPausing() const = 0;

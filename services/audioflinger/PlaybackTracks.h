@@ -220,6 +220,12 @@ public:
     bool getInternalMute() const final { return mInternalMute; }
     void setInternalMute(bool muted) final { mInternalMute = muted; }
 
+    const std::string& getPackageName() const final { return mPackageName; }
+    bool isAppMuted() const final { return mAppMuted.load(std::memory_order_relaxed); }
+    float getAppVolume() const final { return mAppVolume.load(std::memory_order_relaxed); }
+    void setAppVolume(float volume) final { mAppVolume.store(volume, std::memory_order_relaxed); }
+    void setAppMute(bool muted) final { mAppMuted.store(muted, std::memory_order_relaxed); }
+
     std::string trackFlagsAsString() const final { return toString(mFlags); }
 
 protected:
@@ -424,6 +430,9 @@ private:
     const bool          mIsBitPerfect;
 
     bool                      mInternalMute = false;
+    std::string               mPackageName;
+    std::atomic<float>        mAppVolume{1.0f};
+    std::atomic<bool>         mAppMuted{false};
 };  // end of Track
 
 

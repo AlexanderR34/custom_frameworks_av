@@ -3266,8 +3266,6 @@ legacy2aidl_record_client_info_t_RecordClientInfo(const record_client_info_t& le
     return aidl;
 }
 
-} // namespace android
-
 status_t AudioSystem::setAppVolume(const String8& packageName, const float value) {
     const sp<IAudioFlinger>& af = AudioSystem::get_audio_flinger();
     if (af == 0) return PERMISSION_DENIED;
@@ -3285,3 +3283,5 @@ status_t AudioSystem::listAppVolumes(std::vector<media::AppVolume> *vols) {
     if (af == 0) return PERMISSION_DENIED;
     return af->listAppVolumes(vols);
 }
+
+} // namespace android

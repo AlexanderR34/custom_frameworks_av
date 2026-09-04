@@ -2346,7 +2346,7 @@ void PlaybackThread::listAppVolumes(std::set<media::AppVolume> &container)
 
         if (!track->getPackageName().empty()) {
             media::AppVolume av;
-            av.packageName = track->getPackageName();
+            av.packageName = String8(track->getPackageName().c_str());
             av.muted = track->isAppMuted();
             av.volume = track->getAppVolume();
             
@@ -2373,7 +2373,7 @@ status_t PlaybackThread::setAppVolume(const String8& packageName, const float va
         sp<IAfTrack> track = trackBase->asIAfTrack();
         if (track == nullptr) continue;
 
-        if (packageName == track->getPackageName()) {
+        if (packageName == track->getPackageName().c_str()) {
             track->setAppVolume(value);
         }
     }
@@ -2389,7 +2389,7 @@ status_t PlaybackThread::setAppMute(const String8& packageName, const bool value
         sp<IAfTrack> track = trackBase->asIAfTrack();
         if (track == nullptr) continue;
 
-        if (packageName == track->getPackageName()) {
+        if (packageName == track->getPackageName().c_str()) {
             track->setAppMute(value);
         }
     }

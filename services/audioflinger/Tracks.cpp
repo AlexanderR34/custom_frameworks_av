@@ -952,7 +952,10 @@ Track::Track(
     mFlags(flags),
     mSpeed(speed),
     mIsSpatialized(isSpatialized),
-    mIsBitPerfect(isBitPerfect)
+    mIsBitPerfect(isBitPerfect),
+    mPackageName(attributionSource.packageName.value_or("")),
+    mAppVolume(1.0f),
+    mAppMuted(false)
 {
     // client == 0 implies sharedBuffer == 0
     ALOG_ASSERT(!(client == 0 && sharedBuffer != 0));
