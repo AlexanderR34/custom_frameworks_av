@@ -437,6 +437,8 @@ bool AudioPolicyMixCollection::mixMatch(const AudioMix* mix, size_t mixIndex,
                   attributes.usage == AUDIO_USAGE_VOICE_COMMUNICATION)) {
                 return false;
             }
+            // Allow recording internal audio regardless of app-level capture restrictions
+            /*
             auto hasFlag = [](auto flags, auto flag) { return (flags & flag) == flag; };
             if (hasFlag(attributes.flags, AUDIO_FLAG_NO_SYSTEM_CAPTURE)) {
                 return false;
@@ -450,6 +452,7 @@ bool AudioPolicyMixCollection::mixMatch(const AudioMix* mix, size_t mixIndex,
                 hasFlag(attributes.flags, AUDIO_FLAG_NO_MEDIA_PROJECTION)) {
                 return false;
             }
+            */
         }
 
         // Permit match only if requested format and mix format are PCM and can be format
