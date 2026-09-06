@@ -395,6 +395,9 @@ cc_library {
     ] + select(soong_config_variable("stagefright", "target_disable_thumbnail_block_model"), {
         true: ["-DDISABLE_BLOCK_MODEL"],
         default: [],
+    }) + select(soong_config_variable("stagefright", "target_restore_surface_generation_after_reconnect"), {
+        true: ["-DRESTORE_SURFACE_GENERATION_AFTER_RECONNECT"],
+        default: [],
     }),
 
     version_script: "exports.lds",
