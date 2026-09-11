@@ -6945,7 +6945,7 @@ void DirectOutputThread::processVolume_l(const sp<IAfTrack>& track, bool lastTra
         left = right = 0;
     } else {
         float typeVolume = track->getPortVolume();
-        const float v = mMasterVolume * typeVolume * shaperVolume;
+        const float v = mMasterVolume * typeVolume * track->getAppVolume() * shaperVolume;
 
         if (left > 2.0f) {
             left = 2.0f;
