@@ -450,9 +450,16 @@ DeviceVector Engine::getDevicesForStrategyInt(legacy_strategy strategy,
                 }
 
                 if (devices2.isEmpty()) {
-                    // Get the last connected device of wired and bluetooth a2dp
-                    devices2 = availableOutputDevices.getFirstDevicesFromTypes(
-                            getLastRemovableMediaDevices(GROUP_NONE, excludedDevices));
+                    // Dual A2DP: If multiple A2DP devices are connected and available, include all of them
+                    DeviceVector a2dpDevs = availableOutputDevices.getDevicesFromTypes(
+                            getAudioDeviceOutAllA2dpSet());
+                    if (a2dpDevs.size() > 1) {
+                        devices2.add(a2dpDevs);
+                    } else {
+                        // Get the last connected device of wired and bluetooth a2dp
+                        devices2 = availableOutputDevices.getFirstDevicesFromTypes(
+                                getLastRemovableMediaDevices(GROUP_NONE, excludedDevices));
+                    }
                 }
             } else {
                 // Get the last connected device of wired except bluetooth a2dp
