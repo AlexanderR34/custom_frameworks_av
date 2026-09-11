@@ -9933,7 +9933,7 @@ status_t AudioPolicyManager::getDevicesForAttributesInternal(
         return status;
     }
 
-    if (policyMix != nullptr && (policyMix->getOutput() != nullptr || (policyMix->mRouteFlags & AudioMix::ROUTE_FLAG_RENDER) != 0) &&
+    if (policyMix != nullptr && (policyMix->getOutput() != nullptr || (policyMix->mRouteFlags & MIX_ROUTE_FLAG_RENDER) != 0) &&
             // For volume control, skip LOOPBACK mixes which use AUDIO_DEVICE_OUT_REMOTE_SUBMIX
             // as they are unaffected by device/stream volume
             // (per SwAudioOutputDescriptor::isFixedVolume()).
