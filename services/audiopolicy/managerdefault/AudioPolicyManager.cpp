@@ -1482,6 +1482,13 @@ status_t AudioPolicyManager::getOutputForAttrInt(
                 policyDesc = nullptr;
             } // otherwise use primary if available.
         }
+        if (policyDesc == nullptr && policyMixDevice != nullptr) {
+            *output = getOutputForDevices(DeviceVector(policyMixDevice), session, resultAttr, config,
+                    flags, isSpatialized);
+            if (*output != AUDIO_IO_HANDLE_NONE) {
+                policyDesc = mOutputs.valueFor(*output);
+            }
+        }
         if (policyDesc != nullptr) {
             policyDesc->mPolicyMix = primaryMix;
             *output = policyDesc->mIoHandle;
@@ -9926,7 +9933,7 @@ status_t AudioPolicyManager::getDevicesForAttributesInternal(
         return status;
     }
 
-    if (policyMix != nullptr && policyMix->getOutput() != nullptr &&
+    if (policyMix != nullptr && (policyMix->getOutput() != nullptr || (policyMix->mRouteFlags & AudioMix::ROUTE_FLAG_RENDER) != 0) &&
             // For volume control, skip LOOPBACK mixes which use AUDIO_DEVICE_OUT_REMOTE_SUBMIX
             // as they are unaffected by device/stream volume
             // (per SwAudioOutputDescriptor::isFixedVolume()).
@@ -9934,8 +9941,11 @@ status_t AudioPolicyManager::getDevicesForAttributesInternal(
             ) {
         sp<DeviceDescriptor> deviceDesc = mAvailableOutputDevices.getDevice(
                 policyMix->mDeviceType, policyMix->mDeviceAddress, AUDIO_FORMAT_DEFAULT);
-        devices.add(deviceDesc);
-    } else {
+        if (deviceDesc != nullptr) {
+            devices.add(deviceDesc);
+        }
+    }
+    if (devices.isEmpty()) {
         // The default Engine::getOutputDevicesForAttributes() uses findPreferredDevice()
         // which selects setPreferredDevice if active.  This means forVolume call
         // will take an active setPreferredDevice, if such exists.
