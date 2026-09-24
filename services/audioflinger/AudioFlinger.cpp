@@ -1337,7 +1337,7 @@ status_t AudioFlinger::setMasterVolume(float value)
 
             mHardwareStatus = AUDIO_HW_SET_MASTER_VOLUME;
             if (audioHwDevice->canSetMasterVolume()) {
-                audioHwDevice->hwDevice()->setMasterVolume(value);
+                audioHwDevice->hwDevice()->setMasterVolume(value > 1.0f ? 1.0f : value);
             }
             mHardwareStatus = AUDIO_HW_IDLE;
         }
@@ -1351,6 +1351,11 @@ status_t AudioFlinger::setMasterVolume(float value)
             continue;
         }
         thread->asVolumeInterface()->setMasterVolume(value);
+    }
+    for (const auto& [_, thread] : mMmapThreads) {
+        if (thread->isOutput() && thread->asVolumeInterface() != nullptr) {
+            thread->asVolumeInterface()->setMasterVolume(value);
+        }
     }
 
     return NO_ERROR;

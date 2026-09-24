@@ -2453,7 +2453,7 @@ PlaybackThread::PlaybackThread(const sp<IAfThreadCallback>& afThreadCallback,
     mMasterMute = afThreadCallback->masterMute_l();
     if (mOutput->audioHwDev) {
         if (mOutput->audioHwDev->canSetMasterVolume()) {
-            mMasterVolume = 1.0;
+            mMasterVolume = (mMasterVolume > 1.0f) ? mMasterVolume : 1.0;
         }
 
         if (mOutput->audioHwDev->canSetMasterMute()) {
@@ -3035,10 +3035,10 @@ uint32_t PlaybackThread::latency_l() const
 void PlaybackThread::setMasterVolume(float value)
 {
     audio_utils::lock_guard _l(mutex());
-    // Don't apply master volume in SW if our HAL can do it for us.
+    // Don't apply master volume in SW if our HAL can do it for us, unless value > 1.0f (boost mode)
     if (mOutput && mOutput->audioHwDev &&
         mOutput->audioHwDev->canSetMasterVolume()) {
-        mMasterVolume = 1.0;
+        mMasterVolume = (value > 1.0f) ? value : 1.0;
     } else {
         mMasterVolume = value;
     }
@@ -11582,7 +11582,7 @@ MmapPlaybackThread::MmapPlaybackThread(
     mMasterMute = afThreadCallback->masterMute_l();
     if (mAudioHwDev) {
         if (mAudioHwDev->canSetMasterVolume()) {
-            mMasterVolume = 1.0;
+            mMasterVolume = (mMasterVolume > 1.0f) ? mMasterVolume : 1.0;
         }
 
         if (mAudioHwDev->canSetMasterMute()) {
@@ -11612,10 +11612,10 @@ void MmapPlaybackThread::configure(const audio_attributes_t* attr,
 void MmapPlaybackThread::setMasterVolume(float value)
 {
     audio_utils::lock_guard _l(mutex());
-    // Don't apply master volume in SW if our HAL can do it for us.
+    // Don't apply master volume in SW if our HAL can do it for us, unless value > 1.0f (boost mode)
     if (mAudioHwDev &&
             mAudioHwDev->canSetMasterVolume()) {
-        mMasterVolume = 1.0;
+        mMasterVolume = (value > 1.0f) ? value : 1.0;
     } else {
         mMasterVolume = value;
     }
