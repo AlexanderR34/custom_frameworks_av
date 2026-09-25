@@ -25,6 +25,7 @@
 
 #include "Configuration.h"
 #include "AudioFlinger.h"
+#include "VolumeBoostController.h"
 
 #include <afutils/FallibleLockGuard.h>
 #include <afutils/NBAIO_Tee.h>
@@ -1328,6 +1329,7 @@ status_t AudioFlinger::setMasterVolume(float value)
 
     audio_utils::lock_guard _l(mutex());
     mMasterVolume = value;
+    VolumeBoostController::setBoostMultiplier(value);
 
     // Set master volume in the HALs which support it.
     {

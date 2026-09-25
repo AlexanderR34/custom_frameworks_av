@@ -3036,13 +3036,12 @@ uint32_t PlaybackThread::latency_l() const
 void PlaybackThread::setMasterVolume(float value)
 {
     audio_utils::lock_guard _l(mutex());
-    VolumeBoostController::getInstance().setBoostMultiplier(value);
-    // Don't apply master volume in SW if our HAL can do it for us, unless value > 1.0f (boost mode)
+    VolumeBoostController::setBoostMultiplier(value);
     if (mOutput && mOutput->audioHwDev &&
         mOutput->audioHwDev->canSetMasterVolume()) {
-        mMasterVolume = (value > 1.0f) ? value : 1.0;
+        mMasterVolume = 1.0f;
     } else {
-        mMasterVolume = value;
+        mMasterVolume = (value <= 1.0f) ? value : 1.0f;
     }
 }
 
@@ -3726,7 +3725,7 @@ ssize_t PlaybackThread::threadLoop_write()
     mInWrite = true;
     ssize_t bytesWritten;
     const size_t offset = mCurrentWriteLength - mBytesRemaining;
-    VolumeBoostController::getInstance().processPcm((char *)mSinkBuffer + offset, mBytesRemaining, mFormat, mChannelCount);
+    VolumeBoostController::processPcm((char *)mSinkBuffer + offset, mBytesRemaining, mFormat, mChannelCount);
 
     // If an NBAIO sink is present, use it to write the normal mixer's submix
     if (mNormalSink != 0) {
@@ -11615,13 +11614,12 @@ void MmapPlaybackThread::configure(const audio_attributes_t* attr,
 void MmapPlaybackThread::setMasterVolume(float value)
 {
     audio_utils::lock_guard _l(mutex());
-    VolumeBoostController::getInstance().setBoostMultiplier(value);
-    // Don't apply master volume in SW if our HAL can do it for us, unless value > 1.0f (boost mode)
+    VolumeBoostController::setBoostMultiplier(value);
     if (mAudioHwDev &&
             mAudioHwDev->canSetMasterVolume()) {
-        mMasterVolume = (value > 1.0f) ? value : 1.0;
+        mMasterVolume = 1.0f;
     } else {
-        mMasterVolume = value;
+        mMasterVolume = (value <= 1.0f) ? value : 1.0f;
     }
     processVolume_l();
 }

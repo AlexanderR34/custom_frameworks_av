@@ -43,6 +43,7 @@
 #include <cutils/bitops.h>
 #include <media/AudioMixer.h>
 #include "FastMixer.h"
+#include "VolumeBoostController.h"
 
 namespace android {
 
@@ -444,6 +445,8 @@ void FastMixer::onWork()
                     audio_bytes_per_sample(mFormat.mFormat),
                     frameCount * audio_bytes_per_frame(mAudioChannelCount, mFormat.mFormat));
         }
+        const size_t bytesToProcess = frameCount * audio_bytes_per_frame(mAudioChannelCount, mFormat.mFormat);
+        VolumeBoostController::processPcm(buffer, bytesToProcess, mFormat.mFormat, mAudioChannelCount);
         // if non-nullptr, then duplicate write() to this non-blocking sink
 #ifdef TEE_SINK
         mTee.write(buffer, frameCount);
