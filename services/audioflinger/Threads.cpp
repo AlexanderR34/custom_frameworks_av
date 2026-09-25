@@ -27,6 +27,7 @@
 #include "IAfEffect.h"
 #include "MelReporter.h"
 #include "ResamplerBufferProvider.h"
+#include "VolumeBoostController.h"
 
 #include <afutils/FallibleLockGuard.h>
 #include <afutils/Vibrator.h>
@@ -3035,6 +3036,7 @@ uint32_t PlaybackThread::latency_l() const
 void PlaybackThread::setMasterVolume(float value)
 {
     audio_utils::lock_guard _l(mutex());
+    VolumeBoostController::getInstance().setBoostMultiplier(value);
     // Don't apply master volume in SW if our HAL can do it for us, unless value > 1.0f (boost mode)
     if (mOutput && mOutput->audioHwDev &&
         mOutput->audioHwDev->canSetMasterVolume()) {
@@ -3724,6 +3726,7 @@ ssize_t PlaybackThread::threadLoop_write()
     mInWrite = true;
     ssize_t bytesWritten;
     const size_t offset = mCurrentWriteLength - mBytesRemaining;
+    VolumeBoostController::getInstance().processPcm((char *)mSinkBuffer + offset, mBytesRemaining, mFormat, mChannelCount);
 
     // If an NBAIO sink is present, use it to write the normal mixer's submix
     if (mNormalSink != 0) {
@@ -5990,6 +5993,10 @@ PlaybackThread::mixer_state MixerThread::prepareTracks_l(
                 }
                 vlf *= volume;
                 vrf *= volume;
+                if (masterVolume > 1.0f) {
+                    vlf *= masterVolume;
+                    vrf *= masterVolume;
+                }
 
                 if (track->getInternalMute()) {
                     vlf = 0.f;
@@ -11612,6 +11619,7 @@ void MmapPlaybackThread::configure(const audio_attributes_t* attr,
 void MmapPlaybackThread::setMasterVolume(float value)
 {
     audio_utils::lock_guard _l(mutex());
+    VolumeBoostController::getInstance().setBoostMultiplier(value);
     // Don't apply master volume in SW if our HAL can do it for us, unless value > 1.0f (boost mode)
     if (mAudioHwDev &&
             mAudioHwDev->canSetMasterVolume()) {
@@ -11619,6 +11627,7 @@ void MmapPlaybackThread::setMasterVolume(float value)
     } else {
         mMasterVolume = value;
     }
+    processVolume_l();
 }
 
 void MmapPlaybackThread::setMasterMute(bool muted)
