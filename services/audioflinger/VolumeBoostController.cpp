@@ -18,9 +18,22 @@
 
 #include "VolumeBoostController.h"
 #include <log/log.h>
+#include <cmath>
+#include <algorithm>
 #include <cstdlib>
 
 namespace android {
+
+static inline float softSaturate(float x) {
+    if (x > 0.8f) {
+        float excess = x - 0.8f;
+        return 0.8f + 0.2f * std::tanh(excess * 2.5f);
+    } else if (x < -0.8f) {
+        float excess = -x - 0.8f;
+        return -(0.8f + 0.2f * std::tanh(excess * 2.5f));
+    }
+    return x;
+}
 
 VolumeBoostController::VolumeBoostController() {
     mGain.store(1.0f, std::memory_order_relaxed);
@@ -59,13 +72,7 @@ void VolumeBoostController::processPcm(void* buffer, size_t bytes, audio_format_
 
         for (size_t i = 0; i < sampleCount; ++i) {
             float s = samples[i] * gain;
-            // Soft-clipping suave (algoritmo de compresión armónica para evitar distorsión)
-            if (s > 1.0f) {
-                s = 1.0f - (1.0f / (1.0f + (s - 1.0f)));
-            } else if (s < -1.0f) {
-                s = -1.0f + (1.0f / (1.0f + (-s - 1.0f)));
-            }
-            samples[i] = s;
+            samples[i] = softSaturate(s);
         }
     } else if (format == AUDIO_FORMAT_PCM_16_BIT) {
         int16_t* samples = static_cast<int16_t*>(buffer);
@@ -73,14 +80,11 @@ void VolumeBoostController::processPcm(void* buffer, size_t bytes, audio_format_
 
         for (size_t i = 0; i < sampleCount; ++i) {
             float s = (static_cast<float>(samples[i]) / 32768.0f) * gain;
-            if (s > 1.0f) {
-                s = 1.0f - (1.0f / (1.0f + (s - 1.0f)));
-            } else if (s < -1.0f) {
-                s = -1.0f + (1.0f / (1.0f + (-s - 1.0f)));
-            }
+            s = softSaturate(s);
             samples[i] = static_cast<int16_t>(std::clamp(s * 32767.0f, -32768.0f, 32767.0f));
         }
     }
 }
 
 } // namespace android
+
