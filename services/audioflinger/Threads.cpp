@@ -5993,10 +5993,6 @@ PlaybackThread::mixer_state MixerThread::prepareTracks_l(
                 }
                 vlf *= volume;
                 vrf *= volume;
-                if (masterVolume > 1.0f) {
-                    vlf *= masterVolume;
-                    vrf *= masterVolume;
-                }
 
                 if (track->getInternalMute()) {
                     vlf = 0.f;

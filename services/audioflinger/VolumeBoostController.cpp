@@ -25,12 +25,12 @@
 namespace android {
 
 static inline float softSaturate(float x) {
-    if (x > 0.8f) {
-        float excess = x - 0.8f;
-        return 0.8f + 0.2f * std::tanh(excess * 2.5f);
-    } else if (x < -0.8f) {
-        float excess = -x - 0.8f;
-        return -(0.8f + 0.2f * std::tanh(excess * 2.5f));
+    if (x > 0.90f) {
+        float excess = x - 0.90f;
+        return 0.90f + 0.10f * std::tanh(excess * 1.5f);
+    } else if (x < -0.90f) {
+        float excess = -x - 0.90f;
+        return -(0.90f + 0.10f * std::tanh(excess * 1.5f));
     }
     return x;
 }
@@ -63,7 +63,7 @@ void VolumeBoostController::processPcm(void* buffer, size_t bytes, audio_format_
 
     const float gain = mGain.load(std::memory_order_relaxed);
     if (gain <= 1.001f) {
-        return; // Bypass inmediato con 0 sobrecarga de CPU cuando está al 100%
+        return; // Bypass inmediato cuando no hay boost activo
     }
 
     if (format == AUDIO_FORMAT_PCM_FLOAT) {
@@ -71,15 +71,14 @@ void VolumeBoostController::processPcm(void* buffer, size_t bytes, audio_format_
         const size_t sampleCount = bytes / sizeof(float);
 
         for (size_t i = 0; i < sampleCount; ++i) {
-            float s = samples[i] * gain;
-            samples[i] = softSaturate(s);
+            samples[i] = softSaturate(samples[i]);
         }
     } else if (format == AUDIO_FORMAT_PCM_16_BIT) {
         int16_t* samples = static_cast<int16_t*>(buffer);
         const size_t sampleCount = bytes / sizeof(int16_t);
 
         for (size_t i = 0; i < sampleCount; ++i) {
-            float s = (static_cast<float>(samples[i]) / 32768.0f) * gain;
+            float s = static_cast<float>(samples[i]) / 32768.0f;
             s = softSaturate(s);
             samples[i] = static_cast<int16_t>(std::clamp(s * 32767.0f, -32768.0f, 32767.0f));
         }
