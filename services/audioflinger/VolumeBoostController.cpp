@@ -44,7 +44,7 @@ void VolumeBoostController::refreshGain() {
     char propVal[PROPERTY_VALUE_MAX] = {0};
     if (property_get("persist.sys.volume_boost_gain", propVal, "") > 0 && propVal[0] != '\0') {
         float gain = static_cast<float>(std::atof(propVal));
-        if (gain >= 1.0f && gain <= 3.0f) {
+        if (gain >= 1.0f && gain <= 6.0f) {
             mGain.store(gain, std::memory_order_relaxed);
         }
     }
@@ -52,7 +52,7 @@ void VolumeBoostController::refreshGain() {
 
 void VolumeBoostController::setBoostMultiplier(float multiplier) {
     if (multiplier < 1.0f) multiplier = 1.0f;
-    if (multiplier > 3.0f) multiplier = 3.0f;
+    if (multiplier > 6.0f) multiplier = 6.0f;
     mGain.store(multiplier, std::memory_order_relaxed);
 }
 
