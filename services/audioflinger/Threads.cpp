@@ -3724,6 +3724,7 @@ ssize_t PlaybackThread::threadLoop_write()
 {
     mInWrite = true;
     ssize_t bytesWritten;
+    const size_t offset = mCurrentWriteLength - mBytesRemaining;
     if (mMasterVolume > 1.001f) {
         if (mFormat == AUDIO_FORMAT_PCM_FLOAT) {
             float* samples = (float*)((char *)mSinkBuffer + offset);
