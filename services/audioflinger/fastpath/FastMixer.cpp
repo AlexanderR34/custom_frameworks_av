@@ -445,25 +445,9 @@ void FastMixer::onWork()
                     audio_bytes_per_sample(mFormat.mFormat),
                     frameCount * audio_bytes_per_frame(mAudioChannelCount, mFormat.mFormat));
         }
-        if (mFormat.mFormat == AUDIO_FORMAT_PCM_FLOAT) {
-            float* samples = static_cast<float*>(buffer);
-            const size_t count = (frameCount * audio_bytes_per_frame(mAudioChannelCount, mFormat.mFormat)) / sizeof(float);
-            for (size_t i = 0; i < count; ++i) {
-                if (samples[i] > 0.85f || samples[i] < -0.85f) {
-                    samples[i] = std::clamp(VolumeBoostController::softSaturate(samples[i]), -1.0f, 1.0f);
-                }
-            }
-        } else if (mFormat.mFormat == AUDIO_FORMAT_PCM_16_BIT) {
-            int16_t* samples = static_cast<int16_t*>(buffer);
-            const size_t count = (frameCount * audio_bytes_per_frame(mAudioChannelCount, mFormat.mFormat)) / sizeof(int16_t);
-            for (size_t i = 0; i < count; ++i) {
-                float s = static_cast<float>(samples[i]) / 32768.0f;
-                if (s > 0.85f || s < -0.85f) {
-                    s = std::clamp(VolumeBoostController::softSaturate(s), -1.0f, 1.0f);
-                    samples[i] = static_cast<int16_t>(s * 32767.0f);
-                }
-            }
-        }
+        // Apply native volume boost (with soft-saturation) to all mixed fast/normal output right before sink write
+        const size_t bufferBytes = frameCount * audio_bytes_per_frame(mAudioChannelCount, mFormat.mFormat);
+        VolumeBoostController::processPcm(buffer, bufferBytes, mFormat.mFormat);
         // if non-nullptr, then duplicate write() to this non-blocking sink
 #ifdef TEE_SINK
         mTee.write(buffer, frameCount);

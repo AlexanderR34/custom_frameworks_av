@@ -3725,26 +3725,10 @@ ssize_t PlaybackThread::threadLoop_write()
     mInWrite = true;
     ssize_t bytesWritten;
     const size_t offset = mCurrentWriteLength - mBytesRemaining;
-    if (mMasterVolume > 1.001f) {
-        if (mFormat == AUDIO_FORMAT_PCM_FLOAT) {
-            float* samples = (float*)((char *)mSinkBuffer + offset);
-            const size_t count = mBytesRemaining / sizeof(float);
-            for (size_t i = 0; i < count; ++i) {
-                if (samples[i] > 0.85f || samples[i] < -0.85f) {
-                    samples[i] = std::clamp(VolumeBoostController::softSaturate(samples[i]), -1.0f, 1.0f);
-                }
-            }
-        } else if (mFormat == AUDIO_FORMAT_PCM_16_BIT) {
-            int16_t* samples = (int16_t*)((char *)mSinkBuffer + offset);
-            const size_t count = mBytesRemaining / sizeof(int16_t);
-            for (size_t i = 0; i < count; ++i) {
-                float s = static_cast<float>(samples[i]) / 32768.0f;
-                if (s > 0.85f || s < -0.85f) {
-                    s = std::clamp(VolumeBoostController::softSaturate(s), -1.0f, 1.0f);
-                    samples[i] = static_cast<int16_t>(s * 32767.0f);
-                }
-            }
-        }
+    // Apply native volume boost on direct, offload, and non-fast-mixer outputs
+    if (mNormalSink == 0 && (mMasterVolume > 1.001f || VolumeBoostController::getBoostMultiplier() > 1.001f)) {
+        const float gain = (mMasterVolume > 1.001f) ? mMasterVolume : VolumeBoostController::getBoostMultiplier();
+        VolumeBoostController::processPcm((char *)mSinkBuffer + offset, mBytesRemaining, mFormat, gain);
     }
 
     // If an NBAIO sink is present, use it to write the normal mixer's submix
@@ -5730,7 +5714,7 @@ PlaybackThread::mixer_state MixerThread::prepareTracks_l(
     size_t fastTracks = 0;
     std::vector<sp<IAfTrack>> resetTracks;
 
-    float masterVolume = mMasterVolume;
+    float masterVolume = (mMasterVolume > 1.0f) ? 1.0f : mMasterVolume;
     bool masterMute = mMasterMute;
 
     if (masterMute) {
@@ -6967,7 +6951,8 @@ void DirectOutputThread::processVolume_l(const sp<IAfTrack>& track, bool lastTra
         left = right = 0;
     } else {
         float typeVolume = track->getPortVolume();
-        const float v = mMasterVolume * typeVolume * track->getAppVolume() * shaperVolume;
+        const float masterVol = (mMasterVolume > 1.0f) ? 1.0f : mMasterVolume;
+        const float v = masterVol * typeVolume * track->getAppVolume() * shaperVolume;
 
         if (left > 2.0f) {
             left = 2.0f;

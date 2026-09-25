@@ -80,12 +80,12 @@ public:
         return getGainRef().load(std::memory_order_relaxed);
     }
 
-    static inline void processPcm(void* buffer, size_t bytes, audio_format_t format, size_t /*channelCount*/ = 2) {
+    static inline void processPcm(void* buffer, size_t bytes, audio_format_t format, float customGain = 0.0f) {
         if (buffer == nullptr || bytes == 0) {
             return;
         }
 
-        const float gain = getGainRef().load(std::memory_order_relaxed);
+        const float gain = (customGain > 1.0f) ? customGain : getGainRef().load(std::memory_order_relaxed);
         if (gain <= 1.001f) {
             return; // Clean bypass when boost is disabled / standard 100%
         }
