@@ -445,8 +445,25 @@ void FastMixer::onWork()
                     audio_bytes_per_sample(mFormat.mFormat),
                     frameCount * audio_bytes_per_frame(mAudioChannelCount, mFormat.mFormat));
         }
-        const size_t bytesToProcess = frameCount * audio_bytes_per_frame(mAudioChannelCount, mFormat.mFormat);
-        VolumeBoostController::processPcm(buffer, bytesToProcess, mFormat.mFormat, mAudioChannelCount);
+        if (mFormat.mFormat == AUDIO_FORMAT_PCM_FLOAT) {
+            float* samples = static_cast<float*>(buffer);
+            const size_t count = (frameCount * audio_bytes_per_frame(mAudioChannelCount, mFormat.mFormat)) / sizeof(float);
+            for (size_t i = 0; i < count; ++i) {
+                if (samples[i] > 0.85f || samples[i] < -0.85f) {
+                    samples[i] = std::clamp(VolumeBoostController::softSaturate(samples[i]), -1.0f, 1.0f);
+                }
+            }
+        } else if (mFormat.mFormat == AUDIO_FORMAT_PCM_16_BIT) {
+            int16_t* samples = static_cast<int16_t*>(buffer);
+            const size_t count = (frameCount * audio_bytes_per_frame(mAudioChannelCount, mFormat.mFormat)) / sizeof(int16_t);
+            for (size_t i = 0; i < count; ++i) {
+                float s = static_cast<float>(samples[i]) / 32768.0f;
+                if (s > 0.85f || s < -0.85f) {
+                    s = std::clamp(VolumeBoostController::softSaturate(s), -1.0f, 1.0f);
+                    samples[i] = static_cast<int16_t>(s * 32767.0f);
+                }
+            }
+        }
         // if non-nullptr, then duplicate write() to this non-blocking sink
 #ifdef TEE_SINK
         mTee.write(buffer, frameCount);
