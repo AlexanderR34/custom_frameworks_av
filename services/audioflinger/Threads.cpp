@@ -2359,8 +2359,15 @@ void PlaybackThread::listAppVolumes(std::set<media::AppVolume> &container)
                 }
             }
             av.active = isActive;
-            
-            container.insert(av);
+            auto it = container.find(av);
+            if (it != container.end()) {
+                if (isActive && !it->active) {
+                    container.erase(it);
+                    container.insert(av);
+                }
+            } else {
+                container.insert(av);
+            }
         }
     }
 }
